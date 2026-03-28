@@ -1,9 +1,55 @@
 import { Link } from 'react-router-dom'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+
+const heroSlides = [
+  {
+    title: 'The Last Brethren',
+    subtitle: 'Dark fantasy soulslike experience',
+    description:
+      'A cursed cycle of death and resurrection where every run sharpens skill, timing, and tactical mastery.',
+    image: '/pics/the-last-brethren.png',
+    status: 'Playable Demo',
+    tags: ['PC Demo', 'Dark Fantasy'],
+  },
+  {
+    title: 'FZ Arena',
+    subtitle: 'Competitive local multiplayer shooter',
+    description:
+      'Fast rounds, precision gunplay, and skill-based arenas built for high-pressure competitive sessions.',
+    image: '/pics/Fz Icon.png',
+    status: 'Pre-alpha Build',
+    tags: ['Android & iOS', 'Local Multiplayer'],
+  },
+  {
+    title: 'Zanni',
+    subtitle: 'Psychological horror survival',
+    description:
+      'Face distorted realities and escalating tension in a survival horror world designed for high replay value.',
+    image: '/pics/zanni.png',
+    status: 'Demo Available',
+    tags: ['PC Demo', 'Horror Survival'],
+  },
+]
 
 export function Home() {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [activeSlide, setActiveSlide] = useState(0)
+  const [isHeroPaused, setIsHeroPaused] = useState(false)
+  const touchStartX = useRef<number | null>(null)
+  const touchStartY = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (isHeroPaused) {
+      return
+    }
+
+    const slideTimer = window.setInterval(() => {
+      setActiveSlide((current) => (current + 1) % heroSlides.length)
+    }, 5500)
+
+    return () => window.clearInterval(slideTimer)
+  }, [isHeroPaused])
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -14,87 +60,130 @@ export function Home() {
     }, 3000)
   }
 
+  const goToNextSlide = () => {
+    setActiveSlide((current) => (current + 1) % heroSlides.length)
+  }
+
+  const goToPreviousSlide = () => {
+    setActiveSlide((current) => (current - 1 + heroSlides.length) % heroSlides.length)
+  }
+
+  const currentSlide = heroSlides[activeSlide]
+
+  const handleHeroTouchStart = (event: React.TouchEvent<HTMLElement>) => {
+    const touch = event.changedTouches[0]
+    touchStartX.current = touch.clientX
+    touchStartY.current = touch.clientY
+  }
+
+  const handleHeroTouchEnd = (event: React.TouchEvent<HTMLElement>) => {
+    const touch = event.changedTouches[0]
+    if (touchStartX.current === null || touchStartY.current === null) {
+      return
+    }
+
+    const deltaX = touch.clientX - touchStartX.current
+    const deltaY = touch.clientY - touchStartY.current
+    const swipeThreshold = 48
+
+    // Only slide when horizontal intent is clear.
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > swipeThreshold) {
+      if (deltaX < 0) {
+        goToNextSlide()
+      } else {
+        goToPreviousSlide()
+      }
+    }
+
+    touchStartX.current = null
+    touchStartY.current = null
+  }
+
   return (
     <main>
       {/* HERO SECTION */}
-      <div className="page-shell">
-        <section className="hero-layout">
-          <div className="hero-copy">
-            <div className="page-kicker">
-              <span className="badge-pill pill-accent">
-                <span className="badge-dot"></span>
-                Independent Studio, Global Ambition
-              </span>
-            </div>
-            <h1 className="hero-tagline">
-              Dark worlds.<br />
-              <span>High-stakes competition.</span>
-            </h1>
-            <p className="hero-body">
-              Dreadbyte Studios is an independent video game development studio crafting dark, atmospheric experiences where every decision matters. Our portfolio spans dark fantasy, survival horror, and competitive arenas — united by a singular focus: clarity, tension, and mastery. We build games for players who demand depth, not compromise.
-            </p>
-            <div className="hero-cta-row">
-              <Link to="/games" className="btn btn-primary">Explore Our Games</Link>
-              <Link to="/join" className="btn btn-outline">Join Our Team</Link>
-              <Link to="/support" className="btn btn-ghost">Support Development</Link>
-            </div>
-            <div className="hero-meta-row">
-              <span><span className="hero-meta-label">Studio Focus</span> · Dark fantasy, survival, competitive shooter</span>
-              <span><span className="hero-meta-label">Development Stage</span> · Launch-ready portfolio & expansion</span>
-              <span><span className="hero-meta-label">Structure</span> · Remote-first, distributed team</span>
-            </div>
+      <section
+        className="hero-fullscreen"
+        aria-label="Featured games slideshow"
+        onMouseEnter={() => setIsHeroPaused(true)}
+        onMouseLeave={() => setIsHeroPaused(false)}
+        onTouchStart={handleHeroTouchStart}
+        onTouchEnd={handleHeroTouchEnd}
+      >
+        <div className="hero-spotlight-image-wrap">
+          <img
+            key={currentSlide.image}
+            src={currentSlide.image}
+            alt={currentSlide.title}
+            className="hero-spotlight-image"
+          />
+          <div className="hero-spotlight-overlay"></div>
+        </div>
+
+        <button
+          type="button"
+          className="hero-slide-btn hero-slide-btn--prev"
+          aria-label="Previous slide"
+          onClick={goToPreviousSlide}
+        >
+          <span aria-hidden="true">&#10094;</span>
+        </button>
+        <button
+          type="button"
+          className="hero-slide-btn hero-slide-btn--next"
+          aria-label="Next slide"
+          onClick={goToNextSlide}
+        >
+          <span aria-hidden="true">&#10095;</span>
+        </button>
+
+        <div key={currentSlide.title} className="hero-fullscreen-content hero-content-animate">
+          <div className="page-kicker">
+            <span className="badge-pill pill-accent">
+              <span className="badge-dot"></span>
+              Featured Project
+            </span>
+          </div>
+          <h1 className="hero-tagline">
+            {currentSlide.title}
+            <br />
+            <span>{currentSlide.subtitle}</span>
+          </h1>
+          <p className="hero-body">{currentSlide.description}</p>
+          <div className="hero-cta-row">
+            <Link to="/games" className="btn btn-primary">Explore Our Games</Link>
+            <Link to="/join" className="btn btn-outline">Join Our Team</Link>
+            <Link to="/support" className="btn btn-ghost">Support Development</Link>
           </div>
 
-          <aside className="hero-game-card" aria-label="Featured project FZ Arena">
-            <div className="hero-game-header">
-              <div>
-                <div className="hero-game-title">FZ Arena</div>
-                <div className="hero-game-status">Competitive local multiplayer shooter</div>
-              </div>
-              <div className="status-pill status-pill--alpha">Pre-alpha Build</div>
+          <div className="hero-bottom-row">
+            <div className="hero-slide-dots" role="tablist" aria-label="Hero slides">
+              {heroSlides.map((slide, index) => (
+                <button
+                  key={slide.title}
+                  type="button"
+                  className={`hero-slide-dot ${index === activeSlide ? 'is-active' : ''}`}
+                  aria-label={`Go to slide ${index + 1}: ${slide.title}`}
+                  aria-selected={index === activeSlide}
+                  onClick={() => setActiveSlide(index)}
+                />
+              ))}
             </div>
-            <div className="hero-game-art">
-              <div className="hero-game-art-main">
-                <img src="/pics/Fz Icon.png" alt="FZ Arena" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <div className="hero-card-inline" aria-label={`Featured details for ${currentSlide.title}`}>
+              <div className="status-pill status-pill--alpha">{currentSlide.status}</div>
+              <div className="tag-row">
+                <span className="tag tag-pill-accent">{currentSlide.tags[0]}</span>
+                <span className="tag">{currentSlide.tags[1]}</span>
               </div>
-            </div>
-            <div className="hero-game-footer">
-              <p className="hero-game-caption">
-                Intense, skill-based competitive gameplay. Advanced ballistics, responsive controls, and clear sight lines for high-pressure arenas.
-              </p>
-              <div className="hero-game-tags">
-                <div className="tag-row">
-                  <span className="tag tag-pill-accent">Android & iOS</span>
-                  <span className="tag">Local Multiplayer</span>
-                </div>
-                <Link to="/games" className="btn btn-outline" style={{ paddingInline: '14px' }}>
-                  View Roadmap
-                </Link>
-              </div>
-            </div>
-          </aside>
-        </section>
-      </div>
-
-      {/* FEATURED SPOTLIGHT */}
-      <section className="featured-section">
-        <div className="featured-content">
-          <div>
-            <h2>The Last Brethren</h2>
-            <p>
-              Step into a cursed cycle of death and resurrection. Warriors awaken repeatedly in a dark fantasy world where only mastery of systems can break the curse. Every encounter teaches, every death refines. Built on principles of clarity, fairness, and deep moment-to-moment gameplay.
-            </p>
-            <div style={{ display: 'flex', gap: '16px' }}>
-              <a href="https://dreadbyte-studios.itch.io/the-last-brethren" target="_blank" rel="noopener noreferrer" className="btn btn-primary">
-                Play Demo Now
-              </a>
-              <Link to="/games" className="btn btn-outline">
-                Full Details
-              </Link>
+              <Link to="/games" className="btn btn-outline">View Roadmap</Link>
             </div>
           </div>
-          <div className="featured-image">
-            <img src="/pics/the-last-brethren.png" alt="The Last Brethren" />
+          <div className="hero-progress" aria-hidden="true">
+            <span
+              key={`progress-${activeSlide}`}
+              className={`hero-progress-bar ${isHeroPaused ? 'is-paused' : ''}`}
+              style={{ animationDuration: '5500ms' }}
+            ></span>
           </div>
         </div>
       </section>
